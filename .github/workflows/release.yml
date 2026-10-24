@@ -1,0 +1,51 @@
+name: Release
+
+# Tag pushes made by `upm run release` (bumpp) on a developer machine.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install upm
+        run: npm i -g upm --min-release-age 0
+
+      - name: Install dependencies
+        run: upm install --frozen-lockfile
+
+      # bumpp tags v{version}, but the tag and the files can drift if a release
+      # was tagged by hand or the bump commit was edited afterwards.
+      - name: Check the tag matches the package version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json ($version)" >&2
+            exit 1
+          fi
+
+      - name: Check
+        run: upm run check
+
+      - name: Package the extension
+        run: upm run package
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "better-site-${GITHUB_REF_NAME#v}.zip" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

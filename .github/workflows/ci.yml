@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # upm is not bundled with Node, and the lockfile pins the tree.
+      - name: Install upm
+        run: npm i -g upm --min-release-age 0
+
+      - name: Install dependencies
+        run: upm install --frozen-lockfile
+
+      - name: Check
+        run: upm run check

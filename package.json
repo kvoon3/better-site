@@ -7,6 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/build.mjs",
+    "package": "node scripts/package.mjs",
+    "release": "bumpp",
+    "version:check": "node scripts/set-version.mjs --check",
+    "version:sync": "node scripts/set-version.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --deny-warnings",
     "lint:fix": "oxlint --fix --deny-warnings",
@@ -14,7 +18,7 @@
     "format:check": "oxfmt --check .",
     "test": "node --test test/*.test.ts",
     "verify": "node scripts/verify-extension.mjs",
-    "check": "upm run typecheck && upm run lint && upm run format:check && upm run test && upm run build",
+    "check": "upm run version:check && upm run typecheck && upm run lint && upm run format:check && upm run test && upm run build",
     "commitlint": "commitlint",
     "prepare": "simple-git-hooks"
   },
@@ -31,6 +35,7 @@
     "@stylexjs/unplugin": "^0.19.1",
     "@types/chrome": "^0.3.5",
     "@types/node": "^26.6.5",
+    "bumpp": "^12.3.0",
     "esbuild": "^0.28.2",
     "eslint-plugin-antfu": "^3.2.3",
     "eslint-plugin-no-comment-slop": "^0.6.0",
