@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Better Site",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Switch between GitHub <-> DiffsHub and npm <-> npmx without losing your place. See dependency changes and provenance-matched source diffs.",
   "minimum_chrome_version": "114",
   "permissions": ["tabs", "contextMenus", "storage"],

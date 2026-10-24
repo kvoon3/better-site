@@ -1,6 +1,6 @@
 {
   "name": "better-site",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "private": true,
   "description": "Seamless switching between GitHub <-> DiffsHub and npm <-> npmx, with dependency and provenance bridges.",
   "type": "module",
