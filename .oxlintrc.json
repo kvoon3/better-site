@@ -1,0 +1,71 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "node", "promise", "jsx-a11y"],
+  "jsPlugins": ["@stylexjs/eslint-plugin", "eslint-plugin-antfu", "eslint-plugin-no-comment-slop"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "@stylexjs/enforce-extension": "error",
+    "@stylexjs/no-conflicting-props": "error",
+    "@stylexjs/no-legacy-contextual-styles": "error",
+    "@stylexjs/no-lookahead-selectors": "error",
+    "@stylexjs/no-nonstandard-styles": "error",
+    "@stylexjs/no-unused": "error",
+    "@stylexjs/sort-keys": "off",
+    "@stylexjs/valid-shorthands": "error",
+    "@stylexjs/valid-styles": "error",
+    "antfu/curly": "error",
+    "antfu/if-newline": "off",
+    "antfu/import-dedupe": "error",
+    "antfu/no-import-dist": "error",
+    "antfu/no-import-node-modules-by-path": "error",
+    "antfu/no-ts-export-equal": "error",
+    "no-comment-slop/max-comment-lines": "error",
+    "no-comment-slop/multiline-jsdoc-format": "error",
+    "no-comment-slop/no-banner-comment": "error",
+    "no-comment-slop/no-em-dash": "error",
+    "no-comment-slop/no-foreign-syntax": "error",
+    "no-comment-slop/no-jargon": "error",
+    "no-comment-slop/no-prose-semicolon": "error",
+    "no-comment-slop/no-trailing-comment": "error",
+    "no-comment-slop/no-trailing-period": "error",
+    "no-comment-slop/prefer-jsdoc-for-exports": "error",
+    "no-comment-slop/prefer-jsdoc-for-members": "error",
+    "no-comment-slop/require-member-docs": "error"
+  },
+  "overrides": [
+    {
+      "files": ["test/**"],
+      "rules": {
+        "no-comment-slop/max-comment-lines": "off",
+        "no-comment-slop/multiline-jsdoc-format": "off",
+        "no-comment-slop/no-banner-comment": "off",
+        "no-comment-slop/no-em-dash": "off",
+        "no-comment-slop/no-foreign-syntax": "off",
+        "no-comment-slop/no-jargon": "off",
+        "no-comment-slop/no-prose-semicolon": "off",
+        "no-comment-slop/no-trailing-comment": "off",
+        "no-comment-slop/no-trailing-period": "off",
+        "no-comment-slop/prefer-jsdoc-for-exports": "off",
+        "no-comment-slop/prefer-jsdoc-for-members": "off",
+        "no-comment-slop/require-member-docs": "off"
+      }
+    },
+    {
+      "files": ["src/**"],
+      "rules": {
+        "antfu/no-top-level-await": "error",
+        "antfu/top-level-function": "error"
+      }
+    },
+    {
+      "files": ["src/settings/**"],
+      "rules": {
+        "import/no-unassigned-import": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["dist/**", "node_modules/**"]
+}

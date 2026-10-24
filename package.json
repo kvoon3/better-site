@@ -1,0 +1,58 @@
+{
+  "name": "better-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Seamless switching between GitHub <-> DiffsHub and npm <-> npmx, with dependency and provenance bridges.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --deny-warnings",
+    "lint:fix": "oxlint --fix --deny-warnings",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "test": "node --test test/*.test.ts",
+    "verify": "node scripts/verify-extension.mjs",
+    "check": "upm run typecheck && upm run lint && upm run format:check && upm run test && upm run build",
+    "commitlint": "commitlint",
+    "prepare": "simple-git-hooks"
+  },
+  "dependencies": {
+    "@solidjs/web": "2.0.0-rc.16",
+    "@stylexjs/stylex": "^0.19.1",
+    "solid-js": "2.0.0-rc.16"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@solidjs/vite-plugin": "^3.0.0-next.50",
+    "@stylexjs/eslint-plugin": "^0.19.1",
+    "@stylexjs/unplugin": "^0.19.1",
+    "@types/chrome": "^0.3.5",
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "eslint-plugin-antfu": "^3.2.3",
+    "eslint-plugin-no-comment-slop": "^0.6.0",
+    "nano-staged": "^1.0.2",
+    "oxfmt": "^0.74.0",
+    "oxlint": "^1.89.0",
+    "simple-git-hooks": "^2.14.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "./node_modules/.bin/nano-staged",
+    "commit-msg": "./node_modules/.bin/commitlint --edit $1"
+  },
+  "nano-staged": {
+    "*.{js,jsx,mjs,cjs,ts,tsx,json,jsonc,md,css,html}": "oxfmt --write",
+    "*.{js,jsx,mjs,cjs,ts,tsx}": "oxlint --fix"
+  },
+  "browserslist": [
+    "chrome >= 114"
+  ],
+  "engines": {
+    "node": ">=24"
+  }
+}

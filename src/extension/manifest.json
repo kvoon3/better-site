@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "Better Site",
+  "version": "0.1.0",
+  "description": "Switch between GitHub <-> DiffsHub and npm <-> npmx without losing your place. See dependency changes and provenance-matched source diffs.",
+  "minimum_chrome_version": "114",
+  "permissions": ["tabs", "contextMenus", "storage"],
+  "host_permissions": ["https://api.github.com/*", "https://raw.githubusercontent.com/*", "https://registry.npmjs.org/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Toggle surface"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "toggle-git": {
+      "suggested_key": { "default": "Alt+Shift+D" },
+      "description": "Toggle GitHub <-> DiffsHub"
+    },
+    "toggle-npm": {
+      "suggested_key": { "default": "Alt+Shift+N" },
+      "description": "Toggle npm <-> npmx"
+    },
+    "open-bridge": {
+      "suggested_key": { "default": "Alt+Shift+B" },
+      "description": "Open the dependency / source bridge"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*/*/pull/*",
+        "https://github.com/*/*/commit/*",
+        "https://github.com/*/*/compare/*",
+        "https://diffshub.com/*",
+        "https://www.npmjs.com/package/*",
+        "https://www.npmjs.com/~*",
+        "https://www.npmjs.com/org/*",
+        "https://www.npmjs.com/search*",
+        "https://npmjs.com/package/*",
+        "https://npmjs.com/~*",
+        "https://npmjs.com/org/*",
+        "https://npmjs.com/search*",
+        "https://npmx.dev/*",
+        "https://xnpmjs.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
