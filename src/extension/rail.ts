@@ -16,6 +16,8 @@ export interface RailHandle {
   openPanel(title: string, body: HTMLElement): void
   closePanel(): void
   isPanelOpen(): boolean
+  /** Add the "back" chip after the rail is already on screen (at most once) */
+  setBack(action: RailAction): void
   destroy(): void
 }
 
@@ -231,33 +233,34 @@ export function mountRail(options: RailOptions): RailHandle {
   rail.setAttribute('role', 'toolbar')
   rail.setAttribute('aria-label', 'Better Site')
 
+  const chip = (action: RailAction, variant?: string): HTMLButtonElement => {
+    const button = el('button', variant ? `chip ${variant}` : 'chip', action.label) as HTMLButtonElement
+    button.type = 'button'
+    if (action.title) button.title = action.title
+    button.addEventListener('click', action.onClick)
+    return button
+  }
+
   const current = el('span', 'chip current', options.currentLabel)
   rail.append(current)
 
   for (const action of options.actions) {
-    const button = el('button', 'chip', action.label) as HTMLButtonElement
-    button.type = 'button'
-    if (action.title) button.title = action.title
-    button.addEventListener('click', action.onClick)
-    rail.append(button)
+    rail.append(chip(action))
   }
 
   if (options.bridge) {
     rail.append(el('span', 'sep'))
-    const button = el('button', 'chip bridge', options.bridge.label) as HTMLButtonElement
-    button.type = 'button'
-    if (options.bridge.title) button.title = options.bridge.title
-    button.addEventListener('click', options.bridge.onClick)
-    rail.append(button)
+    rail.append(chip(options.bridge, 'bridge'))
   }
 
-  if (options.back) {
-    const button = el('button', 'chip back', options.back.label) as HTMLButtonElement
-    button.type = 'button'
-    button.title = options.back.title ?? 'Go back to the previous surface'
-    button.addEventListener('click', options.back.onClick)
-    rail.append(button)
+  let backAttached = false
+  const setBack = (action: RailAction): void => {
+    if (backAttached) return
+    backAttached = true
+    rail.append(chip({ ...action, title: action.title ?? 'Go back to the previous surface' }, 'back'))
   }
+
+  if (options.back) setBack(options.back)
 
   wrap.append(panel, rail)
   shadow.append(wrap)
@@ -298,6 +301,7 @@ export function mountRail(options: RailOptions): RailHandle {
     openPanel,
     closePanel,
     isPanelOpen: () => panelOpen,
+    setBack,
     destroy: () => {
       document.removeEventListener('keydown', onKeyDown, true)
       document.removeEventListener('pointerdown', onPointerDown, true)

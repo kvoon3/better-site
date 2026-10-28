@@ -3,7 +3,7 @@ import { parseUrl, parseUrlState, surfaceLabel } from '../core/parse.ts'
 import { sha256Hex } from '../core/sha256.ts'
 import { alternatesFor } from '../core/switch.ts'
 import type { Surface, ViewState } from '../core/types.ts'
-import { readSettings } from './settings.ts'
+import { defaultSettings, readSettings, type ExtensionSettings } from './settings.ts'
 import { buildEmpty, buildError, buildMeta, buildSpinner, buildStack, mountRail, type RailAction, type RailHandle } from './rail.ts'
 
 interface DepsPayload {
@@ -49,15 +49,28 @@ interface SourcePayload {
 
 const githubFileCache = new Map<string, string>()
 
+const SEND_TIMEOUT_MS = 8_000
+const SETTINGS_TIMEOUT_MS = 1_000
+
 let rail: RailHandle | null = null
-let currentHref = ''
 let renderToken = 0
+/** URL whose rail state is already on screen, so idle ticks stay free */
+let activeHref = ''
+/** Whether that URL is supposed to have a rail (false for unsupported pages) */
+let wantRail = false
 let railEnabled = true
 let settingsReady = false
 
+function timeout<T>(ms: number, value: T): Promise<T> {
+  return new Promise((resolve) => setTimeout(() => resolve(value), ms))
+}
+
 function send(message: Record<string, unknown>): Promise<any> {
   try {
-    return chrome.runtime.sendMessage(message).catch(() => null)
+    const reply = chrome.runtime.sendMessage(message).catch(() => null)
+    // A message that never settles (service worker still booting) must not hold
+    // the caller forever, so the UI never depends on the reply to show up
+    return Promise.race([reply, timeout(SEND_TIMEOUT_MS, null)])
   } catch {
     return Promise.resolve(null)
   }
@@ -292,9 +305,10 @@ async function openCurrentBridge(): Promise<void> {
   if (!surface) return
   const label = bridgeLabel(surface)
   if (!label) return
-  const href = location.href
+  if (!rail || !rail.host.isConnected) sync(true)
   const handle = rail
   if (!handle) return
+  const href = location.href
   if (surface.family === 'git') await openDeps(handle, href)
   else await openSource(handle, href)
 }
@@ -304,22 +318,20 @@ function backLabel(url: string): string {
   return surface ? `↩ ${surfaceLabel(surface.id)}` : '↩ Back'
 }
 
-async function render(): Promise<void> {
-  const token = ++renderToken
-  const href = location.href
+function teardown(): void {
+  rail?.destroy()
+  rail = null
+  wantRail = false
+  activeHref = ''
+}
+
+/** Mount the rail for `href`. Everything here is local, so it never waits on the background */
+function mount(href: string): boolean {
   const surface = parseUrl(href)
-  if (!surface || !railEnabled) {
-    rail?.destroy()
-    rail = null
-    return
-  }
+  if (!surface) return false
 
   const state = getState(surface)
   const alternates = alternatesFor(surface, state)
-  const back = await send({ type: 'get-back' })
-  if (token !== renderToken || location.href !== href) return
-
-  rail?.destroy()
 
   const hotkey = surface.family === 'git' ? 'Alt+Shift+D' : 'Alt+Shift+N'
   const actions: RailAction[] = alternates
@@ -346,33 +358,62 @@ async function render(): Promise<void> {
       }
     : undefined
 
-  const backAction: RailAction | undefined =
-    typeof back?.url === 'string'
-      ? {
-          label: backLabel(back.url),
-          title: `Back to ${back.url}`,
-          onClick: () => {
-            void send({ type: 'switch-back' })
-          },
-        }
-      : undefined
+  if (!actions.length && !bridge) return false
 
-  if (!actions.length && !bridge && !backAction) return
-
-  const handle = mountRail({
+  rail = mountRail({
     currentLabel: surfaceLabel(surface.id),
     actions,
     bridge,
-    back: backAction,
   })
-  rail = handle
+  return true
 }
 
-function sync(): void {
+async function attachBack(handle: RailHandle, href: string, token: number): Promise<void> {
+  const back = await send({ type: 'get-back' })
+  if (token !== renderToken || rail !== handle || location.href !== href) return
+  if (typeof back?.url !== 'string') return
+  handle.setBack({
+    label: backLabel(back.url),
+    title: `Back to ${back.url}`,
+    onClick: () => {
+      void send({ type: 'switch-back' })
+    },
+  })
+}
+
+function render(): void {
+  const token = ++renderToken
+  const href = location.href
+  teardown()
+
+  if (!railEnabled) {
+    activeHref = href
+    return
+  }
+
+  let mounted = false
+  try {
+    mounted = mount(href)
+  } catch {
+    // A page we cannot render must not retry on every tick
+    teardown()
+    activeHref = href
+    return
+  }
+
+  const handle = rail
+  wantRail = mounted && handle != null
+  activeHref = href
+  if (wantRail && handle) void attachBack(handle, href, token)
+}
+
+/** Keep the rail in step with the URL, and repair it when the page or a teardown removed it */
+function sync(force = false): void {
   if (!settingsReady) return
-  if (location.href === currentHref) return
-  currentHref = location.href
-  void render()
+  const href = location.href
+  const healthy = activeHref === href && (wantRail ? rail?.host.isConnected === true : rail == null)
+  if (!force && healthy) return
+  render()
 }
 
 chrome.runtime.onMessage.addListener((message: any, _sender, sendResponse) => {
@@ -396,20 +437,22 @@ chrome.runtime.onMessage.addListener((message: any, _sender, sendResponse) => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes.showRail) return
   railEnabled = changes.showRail.newValue !== false
-  if (settingsReady) void render()
+  if (settingsReady) sync(true)
 })
 
-window.addEventListener('popstate', sync)
+window.addEventListener('popstate', () => sync())
+window.addEventListener('hashchange', () => sync())
+window.addEventListener('pageshow', () => sync(true))
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) sync()
 })
-window.setInterval(sync, 500)
+window.setInterval(() => sync(), 500)
 
 async function start(): Promise<void> {
-  const settings = await readSettings()
-  railEnabled = settings.showRail
+  const settings = await Promise.race([readSettings(), timeout<ExtensionSettings | null>(SETTINGS_TIMEOUT_MS, null)])
+  railEnabled = settings?.showRail ?? defaultSettings.showRail
   settingsReady = true
-  sync()
+  sync(true)
 }
 
 void start()
