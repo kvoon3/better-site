@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "root": {
     "name": "better-site",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "specs": {
       "dependencies": {
         "@solidjs/web": "2.0.0-rc.16",
